@@ -20,3 +20,12 @@ Use *Java 17 (`skd env`)* and hit:
 ```bash
 mvn package
 ```
+
+## Additional
+
+This is made because we wanted to use RabbitMQ with OAuth2 and the JWT, but mapping realm roles to scopes seemed not
+as the best solution, and we liked to stick to client roles.
+
+## Screenshots
+
+![Mapper Configuration](./assets/mapper-configuration.png)

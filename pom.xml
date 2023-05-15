@@ -10,7 +10,7 @@
 
   <groupId>com.nexiles.keycloak</groupId>
   <artifactId>client-role-attribute-mapper</artifactId>
-  <version>0.1.0-SNAPSHOT</version>
+  <version>0.1.0</version>
 
   <name>Keycloak Client Role Attribute Mapper</name>
   <description>A client role attribute mapper for keycloak</description>

@@ -29,6 +29,8 @@ Spin up pre-configured docker container with:
 docker compose up
 ```
 
+make sure **provider jar files is built before**.
+
 ### Token
 
 Get a token using [httpie](https://httpie.io/), [jq](https://stedolan.github.io/jq/) 
@@ -44,6 +46,10 @@ or use the built-in client scopes evaluation feature [here](http://localhost:808
 
 This is made because we wanted to use RabbitMQ with OAuth2 and the JWT, but mapping realm roles to scopes seemed not
 as the best solution, and we liked to stick to client roles.
+
+Currently, this is tested manually and its planned to add some *real tests* in the future.
+
+This is our first shot on a custom Keycloak provider implementation so far, so there might be some weird stuff in here.
 
 ## Screenshots
 

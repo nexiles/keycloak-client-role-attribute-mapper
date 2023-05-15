@@ -21,6 +21,14 @@ Use *Java 17 (`skd env`)* and hit:
 mvn package
 ```
 
+## Test
+
+Spin up pre-configured docker container with:
+
+```bash
+docker compose up
+```
+
 ## Additional
 
 This is made because we wanted to use RabbitMQ with OAuth2 and the JWT, but mapping realm roles to scopes seemed not

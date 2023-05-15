@@ -30,6 +30,8 @@ jobs:
   
   update-dependency-graph:
     
+    runs-on: ubuntu-latest
+    
     permissions:
       contents: write
     

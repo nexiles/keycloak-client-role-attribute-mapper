@@ -10,7 +10,7 @@ services:
     tty: true
     volumes:
       - ./keycloak/test-realm.json:/opt/keycloak/data/import/realm.json:delegated
-      - ./target/client-role-attribute-mapper-0.1.0.jar:/opt/keycloak/providers/client-role-attribute-mapper-0.1.0.jar:delegated
+      - ./target/client-role-attribute-mapper-0.2.0-SNAPSHOT.jar:/opt/keycloak/providers/client-role-attribute-mapper-0.2.0-SNAPSHOT.jar:delegated
     environment:
       KEYCLOAK_ADMIN: "admin"
       KEYCLOAK_ADMIN_PASSWORD: "admin"

@@ -1,0 +1,30 @@
+version: 2
+
+updates:
+  
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "08:00"
+      timezone: "Europe/Berlin"
+    target-branch: "develop"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependency"
+    reviewers:
+      - "s-frei"
+  
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "08:00"
+      timezone: "Europe/Berlin"
+    target-branch: "develop"
+    open-pull-requests-limit: 30
+    labels:
+      - "dependency"
+      - "dependabot_maven"
+    reviewers:
+      - "s-frei"

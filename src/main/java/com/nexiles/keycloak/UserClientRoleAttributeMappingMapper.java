@@ -9,16 +9,24 @@ import org.keycloak.protocol.oidc.mappers.*;
 import org.keycloak.provider.ProviderConfigProperty;
 import org.keycloak.representations.IDToken;
 
+import javax.annotation.Nullable;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.keycloak.utils.JsonUtils.splitClaimPath;
 
-/*
- * Inspired by {@link UserClientRoleMappingMapper}
+/**
+ * Class for mapping of user client role attributes to an ID and Access Token claim.
+ *
+ * @author <a href="mailto:samuel.frei@nexiles.com">Samuel Frei</a>
+ * <p>
+ * Deeply inspired by:
+ * @see org.keycloak.protocol.oidc.mappers.UserClientRoleMappingMapper
+ * @see org.keycloak.protocol.oidc.mappers.AbstractUserRoleMappingMapper
+ * @see org.keycloak.utils.RoleResolveUtil
  */
-@SuppressWarnings("unused")
+@SuppressWarnings({"unused", "JavadocReference"})
 public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMapper implements OIDCAccessTokenMapper, OIDCIDTokenMapper, UserInfoTokenMapper {
 
     private final static Logger logger = Logger.getLogger(UserClientRoleAttributeMappingMapper.class);
@@ -139,39 +147,14 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
             return;
 
         for (final ClientRoleAttributes resolvedClientRoleAttribute : resolvedClientRoleAttributes) {
-            mapClaim(token, mappingModel, resolvedClientRoleAttribute, resolvedClientRoleAttribute.getClientId());
+            mapClaim(token, mappingModel, resolvedClientRoleAttribute);
         }
 
     }
 
-
-    public static ProtocolMapperModel create(String clientId, String clientRolePrefix,
-                                             String name,
-                                             String tokenClaimName,
-                                             boolean accessToken, boolean idToken) {
-        return create(clientId, clientRolePrefix, name, tokenClaimName, accessToken, idToken, false);
-
-    }
-
-    public static ProtocolMapperModel create(String clientId, String clientRolePrefix,
-                                             String name,
-                                             String tokenClaimName,
-                                             boolean accessToken, boolean idToken, boolean multiValued) {
-        final ProtocolMapperModel mapper = OIDCAttributeMapperHelper.createClaimMapper(name, "foo",
-                tokenClaimName, "String",
-                accessToken, idToken, false,
-                PROVIDER_ID);
-
-        mapper.getConfig().put(ProtocolMapperUtils.MULTIVALUED, String.valueOf(multiValued));
-        mapper.getConfig().put(ProtocolMapperUtils.USER_MODEL_CLIENT_ROLE_MAPPING_CLIENT_ID, clientId);
-        mapper.getConfig().put(ProtocolMapperUtils.USER_MODEL_CLIENT_ROLE_MAPPING_ROLE_PREFIX, clientRolePrefix);
-        return mapper;
-    }
-
-    //
-    // Below obtained from org.keycloak.protocol.oidc.mappers.AbstractUserRoleMappingMapper because
-    // it is not public - modified to match the needs here
-    //
+    /**
+     * RegEXP obtained from {@link org.keycloak.protocol.oidc.mappers.AbstractUserRoleMappingMapper}
+     */
 
     @SuppressWarnings("RegExpRedundantEscape")
     private static final Pattern CLIENT_ID_PATTERN = Pattern.compile("\\$\\{client_id\\}");
@@ -179,15 +162,26 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
     private static final Pattern DOT_PATTERN = Pattern.compile("\\.");
     private static final String DOT_REPLACEMENT = "\\\\\\\\.";
 
+    /**
+     * Adjusted version of unfortunately private {@link AbstractUserRoleMappingMapper#mapClaim}.
+     * <p>
+     * Maps the filtered client role attributes to token claim based on configuration.
+     *
+     * @param token                the token to map claims to.
+     * @param mappingModel         for mapper configuration access.
+     * @param clientRoleAttributes the client role attributes wrapper with attributes information.
+     */
     @SuppressWarnings("AssignmentToMethodParameter")
     private static void mapClaim(IDToken token, ProtocolMapperModel mappingModel,
-                                 ClientRoleAttributes clientRoleAttributes, String clientId) {
+                                 ClientRoleAttributes clientRoleAttributes) {
 
 
         String tokenClaimName = mappingModel.getConfig().get(OIDCAttributeMapperHelper.TOKEN_CLAIM_NAME);
         if (tokenClaimName == null) {
             return;
         }
+
+        String clientId = clientRoleAttributes.getClientId();
 
         if (clientId != null) {
             // case when clientId contains dots
@@ -279,14 +273,22 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
         }
     }
 
-    //
-    // Below obtained from org.keycloak.utils.RoleResolveUtil - modified to match the needs here
-    //
-
     private static final String RESOLVED_CLIENT_ROLES_ATTRIBUTES_ATTR = "RESOLVED_CLIENT_ROLES_ATTRIBUTES";
 
+    /**
+     * Filter client roles based on given parameter.
+     *
+     * @param session          the current keycloak session.
+     * @param clientSessionCtx the current client session context.
+     * @param clientId         the client id to filter for.
+     * @param clientRoleName   the client role name to filter for.
+     * @param attributeName    the attribute name to filer for.
+     * @return all filtered client role attributes.
+     */
     @SuppressWarnings("unchecked")
-    public static Set<ClientRoleAttributes> getAndCacheResolvedClientRolesAttributes(KeycloakSession session, ClientSessionContext clientSessionCtx, String clientId, String clientRoleName, String attributeName) {
+    public static Set<ClientRoleAttributes> getAndCacheResolvedClientRolesAttributes(KeycloakSession session, ClientSessionContext clientSessionCtx,
+                                                                                     @Nullable String clientId, @Nullable String clientRoleName, @Nullable String attributeName) {
+
         final ClientModel client = clientSessionCtx.getClientSession().getClient();
 
         final String resolvedClientRolesAttributesAttrName = RESOLVED_CLIENT_ROLES_ATTRIBUTES_ATTR + ":" + clientSessionCtx.getClientSession().getUserSession().getId();
@@ -297,7 +299,7 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
             logger.tracef("Resolve - clientId: %s clientRoleName: %s - attributeName: %s",
                     clientId, clientRoleName, attributeName);
 
-            Set<ClientRoleAttributes> filteredClientRoleAttributes = clientSessionCtx.getRolesStream() // Get roles of authenticated client
+            final Set<ClientRoleAttributes> filteredClientRoleAttributes = clientSessionCtx.getRolesStream() // Get roles of authenticated client
                     .filter(RoleModel::isClientRole)
                     .filter(clientRole -> clientId == null || clientId.equals(clientModelForRole(clientRole).getClientId()))
                     .filter(clientRole -> clientRoleName == null || clientRoleNameEquals(clientRole, clientRoleName))
@@ -317,16 +319,32 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
         return resolvedClientRoleAttributes;
     }
 
-    // Check if equals where clientRoleName is dot delimited like: clientName.roleName
+    /**
+     * Check if equals where clientRoleName is dot delimited like: clientName.roleName.
+     *
+     * @param clientRole     the client role to use to check name for.
+     * @param clientRoleName the dot delimited client role name.
+     * @return true if the client role name matches, false if not.
+     */
     private static boolean clientRoleNameEquals(RoleModel clientRole, String clientRoleName) {
         final String builtClientRoleName = String.join(".", clientModelForRole(clientRole).getClientId(), clientRole.getName());
         return clientRoleName.equals(builtClientRoleName);
     }
 
+    /**
+     * Get and cast the client model for role model. Role model should be
+     * already checked before.
+     *
+     * @param roleModel the role model to get client for.
+     * @return the client model.
+     */
     private static ClientModel clientModelForRole(RoleModel roleModel) {
         return (ClientModel) roleModel.getContainer();
     }
 
+    /**
+     * Simple wrapper to bundle client > role > attributes information.
+     */
     @Getter
     @RequiredArgsConstructor
     private static class ClientRoleAttributes {

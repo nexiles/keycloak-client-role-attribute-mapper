@@ -23,7 +23,7 @@
     <maven.compiler.target>${java.version}</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-    <keycloak.version>21.1.1</keycloak.version>
+    <keycloak.version>22.0.1</keycloak.version>
 
     <project-lombok.version>1.18.26</project-lombok.version>
 

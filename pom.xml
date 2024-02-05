@@ -25,7 +25,7 @@
 
     <keycloak.version>21.1.1</keycloak.version>
 
-    <project-lombok.version>1.18.26</project-lombok.version>
+    <project-lombok.version>1.18.30</project-lombok.version>
 
     <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
     <maven-source-plugin.version>3.2.1</maven-source-plugin.version>
@@ -33,6 +33,19 @@
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <version>5.9.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>5.9.0</version>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>org.keycloak</groupId>
       <artifactId>keycloak-core</artifactId>
@@ -106,6 +119,9 @@
             <goals>
               <goal>jar</goal>
             </goals>
+            <configuration> <!-- add this to disable checking -->
+              <doclint>none</doclint>
+            </configuration>
           </execution>
         </executions>
       </plugin>

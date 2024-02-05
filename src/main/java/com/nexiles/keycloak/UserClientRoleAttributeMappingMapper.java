@@ -31,18 +31,18 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
 
     private final static Logger logger = Logger.getLogger(UserClientRoleAttributeMappingMapper.class);
 
-    public static final String PROVIDER_ID = "oidc-usermodel-client-role-attribute-mapper";
+    static final String PROVIDER_ID = "oidc-usermodel-client-role-attribute-mapper";
 
     private static final List<ProviderConfigProperty> CONFIG_PROPERTIES = new ArrayList<>();
 
-    private static final String USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_CLIENT_ID = "usermodel.clientRoleAttributeMapping.clientId";
-    private static final String USER_MODEL_CLIENT_ROLE_MAPPING_CLIENT_ROLE_NAME = "usermodel.clientRoleAttributeMapping.clientRoleName";
-    private static final String USER_MODEL_CLIENT_ROLE_MAPPING_CLIENT_ROLE_ATTRIBUTE_NAME = "usermodel.clientRoleAttributeMapping.clientRoleAttributeName";
+    static final String USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_CLIENT_ID = "usermodel.clientRoleAttributeMapping.clientId";
+    static final String USER_MODEL_CLIENT_ROLE_MAPPING_CLIENT_ROLE_NAME = "usermodel.clientRoleAttributeMapping.clientRoleName";
+    static final String USER_MODEL_CLIENT_ROLE_MAPPING_CLIENT_ROLE_ATTRIBUTE_NAME = "usermodel.clientRoleAttributeMapping.clientRoleAttributeName";
 
-    private static final String USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_ADD_CLIENT_ID = "usermodel.clientRoleAttributeMapping.addClientId";
-    private static final String USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_ADD_ROLE_NAME = "usermodel.clientRoleAttributeMapping.addRoleName";
-    private static final String USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_ADD_ATTRIBUTE_NAME = "usermodel.clientRoleAttributeMapping.addAttributeName";
-    private static final String USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_ATTRIBUTE_VALUE_PREFIX = "usermodel.clientRoleAttributeMapping.attributeValuePrefix";
+    static final String USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_ADD_CLIENT_ID = "usermodel.clientRoleAttributeMapping.addClientId";
+    static final String USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_ADD_ROLE_NAME = "usermodel.clientRoleAttributeMapping.addRoleName";
+    static final String USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_ADD_ATTRIBUTE_NAME = "usermodel.clientRoleAttributeMapping.addAttributeName";
+    static final String USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_ATTRIBUTE_VALUE_PREFIX = "usermodel.clientRoleAttributeMapping.attributeValuePrefix";
 
     static {
         final ProviderConfigProperty clientId = new ProviderConfigProperty();
@@ -172,12 +172,12 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
      * @param clientRoleAttributes the client role attributes wrapper with attributes information.
      */
     @SuppressWarnings("AssignmentToMethodParameter")
-    private static void mapClaim(IDToken token, ProtocolMapperModel mappingModel,
+    static void mapClaim(IDToken token, ProtocolMapperModel mappingModel,
                                  ClientRoleAttributes clientRoleAttributes) {
 
 
-        String tokenClaimName = mappingModel.getConfig().get(OIDCAttributeMapperHelper.TOKEN_CLAIM_NAME);
-        if (tokenClaimName == null) {
+        String tokenClaimNamePrefix = mappingModel.getConfig().get(OIDCAttributeMapperHelper.TOKEN_CLAIM_NAME);
+        if (tokenClaimNamePrefix == null) {
             return;
         }
 
@@ -186,17 +186,17 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
         if (clientId != null) {
             // case when clientId contains dots
             clientId = DOT_PATTERN.matcher(clientId).replaceAll(DOT_REPLACEMENT);
-            tokenClaimName = CLIENT_ID_PATTERN.matcher(tokenClaimName).replaceAll(clientId);
+            tokenClaimNamePrefix = CLIENT_ID_PATTERN.matcher(tokenClaimNamePrefix).replaceAll(clientId);
         }
 
         final boolean addClientId = mappingModel.getConfig().get(USER_MODEL_CLIENT_ROLE_ATTRIBUTE_MAPPING_ADD_CLIENT_ID).equals("true");
         if (addClientId) {
-            tokenClaimName = tokenClaimName.concat("." + clientId);
+            tokenClaimNamePrefix = tokenClaimNamePrefix.concat("." + clientId);
         }
 
         final Set<Map.Entry<String, List<String>>> attributeEntry = clientRoleAttributes.getAttributes().entrySet();
         for (final Map.Entry<String, List<String>> entry : attributeEntry) {
-
+            String tokenClaimName = tokenClaimNamePrefix;
 
             final String attributeName = entry.getKey();
 
@@ -219,13 +219,10 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
                         .toList();
             }
 
-            final boolean multiValued = mappingModel.getConfig().get(ProtocolMapperUtils.MULTIVALUED).equals("true");
-            if (!multiValued) {
-                attributeValues = entry.getValue().toString();
-            }
+            attributeValues = OIDCAttributeMapperHelper.mapAttributeValue(mappingModel, attributeValues);
 
-            logger.tracef("Map to claim (%s) - attributeName: %s addClientId: %s addRoleName: %s addAttributeName: %s multiValued: %s: %s",
-                    tokenClaimName, addAttributeName, addClientId, addRoleName, addAttributeName, multiValued, attributeValues);
+            logger.tracef("Map to claim (%s) - attributeName: %s addClientId: %s addRoleName: %s addAttributeName: %s %s",
+                    tokenClaimName, addAttributeName, addClientId, addRoleName, addAttributeName, attributeValues);
 
 
             mapToClaim(token, mappingModel, tokenClaimName, attributeValues);
@@ -235,11 +232,8 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
     }
 
     @SuppressWarnings({"AssignmentToMethodParameter", "unchecked", "rawtypes"})
-    private static void mapToClaim(IDToken token, ProtocolMapperModel mappingModel, String tokenClaimName, Object claimValue) {
-
+    static void mapToClaim(IDToken token, ProtocolMapperModel mappingModel, String tokenClaimName, Object claimValue) {
         claimValue = OIDCAttributeMapperHelper.mapAttributeValue(mappingModel, claimValue);
-        if (claimValue == null) return;
-
         final List<String> split = splitClaimPath(tokenClaimName);
 
         final int length = split.size();
@@ -250,10 +244,18 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
             if (i == length) {
                 // Case when we want to add to existing set of roles
                 final Object last = jsonObject.get(component);
+                final boolean multiValued = mappingModel.getConfig().getOrDefault(ProtocolMapperUtils.MULTIVALUED, "false").equals("true");
 
-                if (last instanceof Collection lastColl && claimValue instanceof Collection claimValueColl) {
-                    lastColl.addAll(claimValueColl);
-                    jsonObject.put(component, new HashSet<>(lastColl));
+                if (last instanceof Collection lastColl && multiValued) {
+                    if(claimValue instanceof Collection claimValueColl) {
+                        lastColl.addAll(claimValueColl);
+                    } else {
+                        lastColl.add(claimValue);
+                    }
+                } else if (last == null){
+                    jsonObject.put(component, claimValue);
+                } else if (multiValued) {
+                    jsonObject.put(component, new ArrayList<>(Arrays.asList(last, claimValue)));
                 } else {
                     jsonObject.put(component, claimValue);
                 }
@@ -347,7 +349,7 @@ public class UserClientRoleAttributeMappingMapper extends AbstractOIDCProtocolMa
      */
     @Getter
     @RequiredArgsConstructor
-    private static class ClientRoleAttributes {
+    static class ClientRoleAttributes {
 
         private final String clientId;
 
